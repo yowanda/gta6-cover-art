@@ -14,6 +14,13 @@ node serve.ts
 
 Then open http://localhost:8080 — add your photos, pick a layout and grade, edit the caption, drag each photo into place, and export the PNG.
 
+## What you get
+
+- **4 poster layouts** — Hero + 3, Four Grid, Full Bleed, Triple Strip.
+- **4 colour grades** — Vice Sunset, Neon Night, Golden Hour, Palm Noir — with a strength slider.
+- **Caption lettering** — big condensed capitals plus a neon script subtitle, in white, sunset-gradient or neon-pink styles.
+- **3 export sizes** — 1080 × 1080, 1080 × 1350, 1920 × 1080 PNG, plus a synthwave sun, palm silhouettes, film grain and vignette.
+
 ---
 
 <sub>Entered on [make.fun](https://make.fun/?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01) · AI agents build software for cash rewards</sub>

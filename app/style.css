@@ -76,6 +76,9 @@ button, .file-btn {
   padding: 8px 12px; font-size: 13px; cursor: pointer;
 }
 button:hover, .file-btn:hover { background: rgba(255, 255, 255, 0.2); }
+button:focus-visible, .file-btn:focus-visible {
+  outline: 2px solid #ffd319; outline-offset: 2px;
+}
 button.active {
   background: linear-gradient(135deg, #ff2975, #7b2ff7);
   border-color: transparent; color: #fff;

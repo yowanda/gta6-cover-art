@@ -14,6 +14,11 @@ function applyParams(query) {
   if (layout && LAYOUTS[layout]) state.layout = layout;
   const grade = query.get('grade');
   if (grade && GRADES[grade]) state.grade = grade;
+  // Screenshot scenes may dial the grade strength too (0–1, clamped).
+  const gradeAmount = query.get('gradeAmount');
+  if (gradeAmount !== null && Number.isFinite(Number(gradeAmount))) {
+    state.gradeAmount = Math.max(0, Math.min(1, Number(gradeAmount)));
+  }
   const size = query.get('size');
   if (size && SIZES[size]) state.size = size;
   const caption = query.get('caption');

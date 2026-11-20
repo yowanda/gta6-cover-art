@@ -45,6 +45,11 @@ function main() {
   mkdirSync(outputDir, { recursive: true });
 
   copyTree(join(repoRoot, 'app'), join(outputDir, 'app'));
+  // The app is the entry: refuse to hand in an output with no app at all
+  // instead of silently producing an empty dossier.
+  if (!existsSync(join(outputDir, 'app', 'index.html'))) {
+    throw new Error('app/index.html missing — refusing to build an empty entry');
+  }
   copyTree(join(repoRoot, 'screenshots'), join(outputDir, 'screenshots'));
 
   const dossier = buildDossier(outputDir, DOSSIER_CAPS);

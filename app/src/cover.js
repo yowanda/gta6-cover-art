@@ -249,7 +249,9 @@ export function drawCover(canvas, state, photos) {
   const w = canvas.width;
   const h = canvas.height;
   const grade = GRADES[state.grade] ?? GRADES.sunset;
-  const amount = state.gradeAmount ?? 0.85;
+  // Clamp the wash strength: a stray value above 1 would otherwise drown
+  // the photos in a fully opaque colour wash.
+  const amount = Math.max(0, Math.min(1, state.gradeAmount ?? 0.85));
   const rects = panelRects(state, w, h);
   const gap = Math.max(3, Math.round(w * 0.006));
 

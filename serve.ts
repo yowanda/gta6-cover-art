@@ -21,6 +21,7 @@ const TYPES = {
   '.jpeg': 'image/jpeg',
   '.ttf': 'font/ttf',
   '.woff2': 'font/woff2',
+  '.svg': 'image/svg+xml',
   '.txt': 'text/plain; charset=utf-8',
 };
 

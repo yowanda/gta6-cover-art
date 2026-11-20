@@ -42,8 +42,10 @@ async function loadSamples() {
 
 function addFiles(files) {
   let pending = 0;
+  let seen = 0;
   for (const file of files) {
     if (!file.type.startsWith('image/')) continue;
+    seen += 1;
     pending += 1;
     const reader = new FileReader();
     reader.onload = () => {
@@ -61,6 +63,8 @@ function addFiles(files) {
     };
     reader.readAsDataURL(file);
   }
+  // Nothing image-like was picked: say so instead of staying silent.
+  if (seen === 0) setStatus('No image files selected — pick a photo to add it.');
 }
 
 function renderTray() {
