@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vice City Cover Studio — GTA 6-style cover maker</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">VC</span>
+    <div>
+      <h1>Vice City Cover Studio</h1>
+      <p>Your photo + a caption &rarr; GTA 6-style poster art. Offline, nothing uploads.</p>
+    </div>
+  </div>
+  <button id="export" class="export-btn" type="button">Export PNG</button>
+</header>
+
+<main class="layout">
+  <section class="controls" aria-label="Cover controls">
+    <div class="group">
+      <h2>1 · Photos</h2>
+      <div class="row">
+        <label class="file-btn">Add photos
+          <input id="photoInput" type="file" accept="image/*" multiple>
+        </label>
+        <button id="sampleBtn" type="button">Use sample photos</button>
+      </div>
+      <div id="tray" class="tray" aria-label="Loaded photos"></div>
+      <p class="hint">Click a photo, then click a panel to place it there.</p>
+    </div>
+
+    <div class="group">
+      <h2>2 · Layout</h2>
+      <div id="layoutBtns" class="btn-row"></div>
+    </div>
+
+    <div class="group">
+      <h2>3 · Colour grade</h2>
+      <div id="gradeBtns" class="btn-row"></div>
+      <label class="slider-label">Grade strength
+        <input id="gradeAmount" type="range" min="0" max="1" step="0.05" value="0.85">
+      </label>
+    </div>
+
+    <div class="group">
+      <h2>4 · Caption</h2>
+      <label class="field">Title
+        <input id="titleInput" type="text" maxlength="32" value="VICE CITY">
+      </label>
+      <label class="field">Subtitle
+        <input id="subtitleInput" type="text" maxlength="60" value="neon nights, palm dreams">
+      </label>
+      <div id="titleStyleBtns" class="btn-row"></div>
+    </div>
+
+    <div class="group">
+      <h2>5 · Selected panel</h2>
+      <p id="panelLabel" class="hint">Panel 1 of 4 — drag the photo on the preview to move it.</p>
+      <label class="slider-label">Zoom
+        <input id="zoomInput" type="range" min="1" max="3" step="0.05" value="1">
+      </label>
+      <div class="row">
+        <button id="centerBtn" type="button">Centre photo</button>
+        <button id="swapBtn" type="button">Next photo</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>6 · Size &amp; finish</h2>
+      <div id="sizeBtns" class="btn-row"></div>
+      <div class="toggles">
+        <label><input id="frameToggle" type="checkbox" checked> White poster frame</label>
+        <label><input id="grainToggle" type="checkbox" checked> Film grain</label>
+        <label><input id="vignetteToggle" type="checkbox" checked> Vignette</label>
+        <label><input id="sunToggle" type="checkbox" checked> Synthwave sun</label>
+        <label><input id="palmsToggle" type="checkbox" checked> Palm silhouettes</label>
+      </div>
+    </div>
+
+    <p id="status" class="status" role="status"></p>
+  </section>
+
+  <section class="preview" aria-label="Live preview">
+    <canvas id="preview" width="1080" height="1080"></canvas>
+    <p class="hint">Live preview — click a panel to select it, drag to reposition its photo.</p>
+  </section>
+</main>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

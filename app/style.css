@@ -1,0 +1,131 @@
+/* Vice City Cover Studio — editor chrome. The cover itself is drawn on canvas. */
+@font-face {
+  font-family: "ViceCondensed";
+  src: url("./fonts/NotoSans-CondensedBlack.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "ViceSerif";
+  src: url("./fonts/NotoSerif-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  background: linear-gradient(160deg, #1b0b2e 0%, #3d1150 55%, #12041f 100%);
+  color: #f6ecff;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 14px 22px;
+  background: rgba(10, 3, 20, 0.55);
+  border-bottom: 2px solid #ff2975;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-mark {
+  display: grid; place-items: center;
+  width: 52px; height: 52px; border-radius: 10px;
+  background: linear-gradient(135deg, #ffd319, #ff2975 60%, #7b2ff7);
+  color: #fff; font-family: "ViceCondensed", sans-serif;
+  font-size: 26px; letter-spacing: 1px;
+  box-shadow: 0 0 18px rgba(255, 41, 117, 0.55);
+}
+.brand h1 {
+  margin: 0; font-family: "ViceCondensed", sans-serif;
+  font-size: 26px; letter-spacing: 2px; text-transform: uppercase;
+}
+.brand p { margin: 2px 0 0; font-size: 13px; color: #d9b8ff; }
+
+.export-btn {
+  background: linear-gradient(135deg, #ff2975, #ff7e00);
+  color: #fff; border: 0; border-radius: 999px;
+  font-family: "ViceCondensed", sans-serif; font-size: 19px; letter-spacing: 1.5px;
+  padding: 12px 28px; cursor: pointer;
+  box-shadow: 0 4px 22px rgba(255, 41, 117, 0.5);
+}
+.export-btn:hover { filter: brightness(1.12); }
+.export-btn:active { transform: translateY(1px); }
+
+.layout {
+  display: grid; grid-template-columns: 340px 1fr;
+  gap: 22px; padding: 20px 22px 30px; align-items: start;
+}
+.controls { display: flex; flex-direction: column; gap: 16px; }
+.group {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px; padding: 14px 16px;
+}
+.group h2 {
+  margin: 0 0 10px; font-family: "ViceCondensed", sans-serif;
+  font-size: 16px; letter-spacing: 1.5px; text-transform: uppercase; color: #ffd319;
+}
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+button, .file-btn {
+  background: rgba(255, 255, 255, 0.1); color: #f6ecff;
+  border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 8px;
+  padding: 8px 12px; font-size: 13px; cursor: pointer;
+}
+button:hover, .file-btn:hover { background: rgba(255, 255, 255, 0.2); }
+button.active {
+  background: linear-gradient(135deg, #ff2975, #7b2ff7);
+  border-color: transparent; color: #fff;
+}
+.file-btn input { display: none; }
+.field { display: block; font-size: 13px; margin-bottom: 8px; }
+.field input[type="text"] {
+  display: block; width: 100%; margin-top: 4px;
+  background: rgba(0, 0, 0, 0.35); color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px;
+  padding: 9px 10px; font-size: 14px;
+}
+.slider-label { display: block; font-size: 13px; margin-top: 10px; }
+.slider-label input[type="range"] { width: 100%; accent-color: #ff2975; }
+.toggles { display: flex; flex-direction: column; gap: 6px; font-size: 13px; margin-top: 10px; }
+.toggles input { accent-color: #ff2975; }
+.hint { font-size: 12px; color: #c9a8e8; margin: 8px 0 0; }
+.status { font-size: 13px; color: #ffd319; min-height: 18px; margin: 0; }
+
+.tray { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.tray img {
+  width: 64px; height: 64px; object-fit: cover; border-radius: 8px;
+  border: 2px solid transparent; cursor: pointer;
+}
+.tray img.picked { border-color: #ffd319; box-shadow: 0 0 10px rgba(255, 211, 25, 0.6); }
+.tray .empty {
+  font-size: 13px; color: #c9a8e8; border: 1px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 8px; padding: 18px 12px; width: 100%; text-align: center;
+}
+
+.preview { position: sticky; top: 16px; }
+.preview canvas {
+  width: 100%; max-width: 880px; height: auto; display: block;
+  border-radius: 6px; box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+  cursor: grab; touch-action: none; background: #241533;
+}
+.preview canvas:active { cursor: grabbing; }
+.preview .hint { text-align: center; }
+
+/* Screenshot scenes: ?shot=cover shows the cover alone, full frame. */
+body.shot-cover { background: #fdf8f2; }
+body.shot-cover .topbar, body.shot-cover .controls, body.shot-cover .preview .hint { display: none; }
+body.shot-cover .layout { display: block; padding: 0; }
+body.shot-cover .preview { position: static; }
+body.shot-cover #preview {
+  width: 100vw; height: 100vh; max-width: none;
+  border-radius: 0; box-shadow: none; object-fit: contain;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .preview { position: static; }
+}
