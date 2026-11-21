@@ -1,9 +1,18 @@
 // Vice City Cover Studio — the editor: photos, panels, caption, export.
 // Wires the controls in index.html to the cover renderer in cover.js.
 // Photos are read on this machine with FileReader / <img>: nothing uploads.
-// Round 4: one-click looks, title position and size, face-aware crops
-// (the focal point is measured when each photo loads), and export-all.
-import { LAYOUTS, GRADES, PRESETS, SIZES, TITLE_STYLES, defaultState, drawCover, detectFocalPoint, panelRects } from './cover.js';
+// Round 5: three sample photos (boulevard, pier, rooftop), a seventh
+// layout and grade, caption font and alignment controls, and panels that
+// re-spread their photos — no two neighbours repeating — when the layout
+// changes. The focal point is measured when each photo loads, with the
+// sample's known face position as the fallback.
+import { LAYOUTS } from './layouts.js';
+import { GRADES } from './grades.js';
+import { SAMPLES, sampleUrl, fallbackFocal } from './panels.js';
+import {
+  PRESETS, SIZES, TITLE_STYLES, CAPTION_FONTS, CAPTION_ALIGN,
+  defaultState, drawCover, detectFocalPoint, panelRects, relayoutSlots,
+} from './cover.js';
 import { runShot } from './shots.js';
 
 const $ = (id) => document.getElementById(id);
@@ -13,11 +22,6 @@ const state = defaultState();
 const photos = [];
 let pickedPhoto = 0;
 let dragging = null;
-
-const SAMPLES = [
-  { name: 'boulevard.jpg', url: './samples/boulevard.jpg' },
-  { name: 'pier.jpg', url: './samples/pier.jpg' },
-];
 
 function loadImage(url) {
   return new Promise((resolve, reject) => {
@@ -31,24 +35,26 @@ function loadImage(url) {
 /** Measures a photo's focal point (face) once it has loaded, then redraws. */
 function measureFocal(photo) {
   try {
-    photo.focal = detectFocalPoint(photo.img);
+    photo.focal = detectFocalPoint(photo.img, fallbackFocal(photo.name));
   } catch {
-    photo.focal = null;
+    photo.focal = fallbackFocal(photo.name);
   }
 }
 
 async function loadSamples() {
   for (const sample of SAMPLES) {
-    if (photos.some((p) => p.name === sample.name)) continue;
+    if (photos.some((p) => p.name === sample.file)) continue;
     try {
-      const img = await loadImage(sample.url);
-      const photo = { img, name: sample.name, url: sample.url, focal: null };
+      const img = await loadImage(sampleUrl(sample));
+      const photo = { img, name: sample.file, url: sampleUrl(sample), focal: null };
       photos.push(photo);
       measureFocal(photo);
     } catch (error) {
-      setStatus(`Sample ${sample.name} did not load.`);
+      setStatus(`Sample ${sample.file} did not load.`);
     }
   }
+  // A fresh sample changes the spread: re-deal the photos over the panels.
+  state.slots = relayoutSlots(state, photos.length);
   renderTray();
   redraw();
 }
@@ -69,6 +75,7 @@ function addFiles(files) {
         measureFocal(photo);
         pending -= 1;
         if (pending === 0) {
+          state.slots = relayoutSlots(state, photos.length);
           renderTray();
           redraw();
           setStatus(`${photos.length} photo(s) loaded. Click one, then a panel.`);
@@ -130,6 +137,9 @@ function buildLayoutButtons() {
   buildButtons('layoutBtns', LAYOUTS, state.layout, (key) => {
     state.layout = key;
     state.selected = 0;
+    // New geometry, new deal: spread the photos over the new panels so
+    // neighbours never repeat, keeping each slot's zoom and pan.
+    state.slots = relayoutSlots(state, photos.length);
     syncPanelControls();
   });
 }
@@ -138,7 +148,7 @@ function buildGradeButtons() {
   buildButtons('gradeBtns', GRADES, state.grade, (key) => { state.grade = key; });
 }
 
-/** Applies a one-click look: layout + grade + lettering + title position. */
+/** Applies a one-click look: layout + grade + lettering + title spot. */
 function applyPreset(key) {
   const preset = PRESETS[key];
   if (!preset) return;
@@ -146,11 +156,16 @@ function applyPreset(key) {
   state.grade = preset.grade;
   state.titleStyle = preset.titleStyle;
   state.titlePos = preset.titlePos;
+  if (preset.captionFont) state.captionFont = preset.captionFont;
+  if (preset.captionAlign) state.captionAlign = preset.captionAlign;
   state.selected = 0;
+  state.slots = relayoutSlots(state, photos.length);
   buildLayoutButtons();
   buildGradeButtons();
   buildTitleStyleButtons();
   buildTitlePosButtons();
+  buildCaptionFontButtons();
+  buildCaptionAlignButtons();
   syncPanelControls();
   redraw();
   setStatus(`Look “${preset.label}” applied — tweak it or export.`);
@@ -169,6 +184,14 @@ function buildTitlePosButtons() {
     bottom: { label: 'Bottom' },
     top: { label: 'Top' },
   }, state.titlePos, (key) => { state.titlePos = key; });
+}
+
+function buildCaptionFontButtons() {
+  buildButtons('captionFontBtns', CAPTION_FONTS, state.captionFont, (key) => { state.captionFont = key; });
+}
+
+function buildCaptionAlignButtons() {
+  buildButtons('captionAlignBtns', CAPTION_ALIGN, state.captionAlign, (key) => { state.captionAlign = key; });
 }
 
 function buildSizeButtons() {
@@ -202,6 +225,8 @@ function syncUI() {
   buildGradeButtons();
   buildTitleStyleButtons();
   buildTitlePosButtons();
+  buildCaptionFontButtons();
+  buildCaptionAlignButtons();
   buildSizeButtons();
   $('titleInput').value = state.title;
   $('subtitleInput').value = state.subtitle;
@@ -356,6 +381,8 @@ function initEditor() {
   buildGradeButtons();
   buildTitleStyleButtons();
   buildTitlePosButtons();
+  buildCaptionFontButtons();
+  buildCaptionAlignButtons();
   buildSizeButtons();
   bindControls();
   bindPreview();

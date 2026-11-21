@@ -5,9 +5,13 @@
 //   ?shot=editor&photo=boulevard&caption=Boulevard%20Queen
 //     shows the editor with a sample photo loaded.
 // Extra scene knobs: preset, layout, grade, gradeAmount, titleStyle,
-// titlePos, titleScale, faceAware=0/1, and slots=a,b,c,d (one photo per panel).
+// titlePos, titleScale, captionFont, captionAlign, faceAware=0/1, and
+// slots=a,b,c,d (one photo per panel). Without `slots`, the panels keep
+// the editor's own spread — all three samples, no two neighbours alike.
 // window.__shotReady is set once the scene is painted.
-import { LAYOUTS, GRADES, PRESETS, SIZES, TITLE_STYLES } from './cover.js';
+import { LAYOUTS } from './layouts.js';
+import { GRADES } from './grades.js';
+import { PRESETS, SIZES, TITLE_STYLES, CAPTION_FONTS, CAPTION_ALIGN } from './cover.js';
 
 function applyParams(query) {
   const vice = window.__vice;
@@ -34,6 +38,10 @@ function applyParams(query) {
   if (style && TITLE_STYLES[style]) state.titleStyle = style;
   const titlePos = query.get('titlePos');
   if (titlePos === 'top' || titlePos === 'bottom') state.titlePos = titlePos;
+  const captionFont = query.get('captionFont');
+  if (captionFont && CAPTION_FONTS[captionFont]) state.captionFont = captionFont;
+  const captionAlign = query.get('captionAlign');
+  if (captionAlign && CAPTION_ALIGN[captionAlign]) state.captionAlign = captionAlign;
   const titleScale = query.get('titleScale');
   if (titleScale !== null && Number.isFinite(Number(titleScale))) {
     state.titleScale = Math.max(0.8, Math.min(1.3, Number(titleScale)));
@@ -51,7 +59,7 @@ function applyParams(query) {
       state.slots.forEach((slot) => { slot.photo = index; });
     }
   }
-  // Per-panel photos: slots=boulevard,pier,boulevard,pier picks one per panel.
+  // Per-panel photos: slots=boulevard,pier,rooftop,pier picks one per panel.
   const slots = query.get('slots');
   if (slots) {
     slots.split(',').forEach((name, i) => {

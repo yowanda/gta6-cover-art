@@ -1,153 +1,92 @@
 // Vice City Cover Studio — the cover renderer.
-// Draws a multi-panel GTA-poster-style cover onto any 2D canvas: the photos fill
-// the layout's panels, a sunset or neon grade washes over them, a synthwave sun
-// and palm silhouettes (drawn here, our own art) set the scene, and the caption
-// is lettered in big condensed capitals with a neon script subtitle.
-// Pure canvas 2D, no library, no network: every pixel comes from this file.
-// Round 4: face-aware crops keep the subject's face in the hero close-up,
-// the grade washes are bolder, the title is bigger with a 3D extrusion,
-// and there are six layouts, six grades and five one-click looks.
+// Draws a multi-panel GTA-poster-style cover onto any 2D canvas: the
+// photos fill the layout's panels, a sunset or neon grade washes over
+// them, a synthwave sun and palm silhouettes (drawn here, our own art)
+// set the scene, and the caption is lettered in big capitals with a neon
+// script subtitle. Pure canvas 2D, no library, no network: every pixel
+// comes from this file and the photos.
+// Round 5: the layouts live in layouts.js, the grades in grades.js and
+// the sample photos in panels.js; the sun now keeps clear of the face
+// (it used to land on the subject's hair in some covers); the caption
+// has a font choice and a left/centre/right alignment; and there is a
+// seventh layout (Hero Bottom) and a seventh grade (Vice Chrome).
+import { LAYOUTS, panelRectsFor } from './layouts.js';
+import { GRADES, gradeFor, clampAmount } from './grades.js';
+import { defaultSlots, respreadSlots } from './panels.js';
 
-/** The six panel layouts. Each returns panel rects as fractions of the cover. */
-export const LAYOUTS = {
-  hero3: {
-    label: 'Hero + 3',
-    panels(w, h) {
-      const split = 0.58;
-      return [
-        { x: 0, y: 0, w: 1, h: split },
-        { x: 0, y: split, w: 1 / 3, h: 1 - split },
-        { x: 1 / 3, y: split, w: 1 / 3, h: 1 - split },
-        { x: 2 / 3, y: split, w: 1 / 3, h: 1 - split },
-      ];
-    },
-  },
-  heroLeft: {
-    label: 'Hero Left',
-    panels(w, h) {
-      const split = 0.55;
-      return [
-        { x: 0, y: 0, w: split, h: 1 },
-        { x: split, y: 0, w: 1 - split, h: 1 / 3 },
-        { x: split, y: 1 / 3, w: 1 - split, h: 1 / 3 },
-        { x: split, y: 2 / 3, w: 1 - split, h: 1 / 3 },
-      ];
-    },
-  },
-  grid4: {
-    label: 'Four Grid',
-    panels() {
-      return [
-        { x: 0, y: 0, w: 0.5, h: 0.5 },
-        { x: 0.5, y: 0, w: 0.5, h: 0.5 },
-        { x: 0, y: 0.5, w: 0.5, h: 0.5 },
-        { x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
-      ];
-    },
-  },
-  bleed: {
-    label: 'Full Bleed',
-    panels() {
-      return [{ x: 0, y: 0, w: 1, h: 1 }];
-    },
-  },
-  strips3: {
-    label: 'Triple Strip',
-    panels() {
-      return [
-        { x: 0, y: 0, w: 1 / 3, h: 1 },
-        { x: 1 / 3, y: 0, w: 1 / 3, h: 1 },
-        { x: 2 / 3, y: 0, w: 1 / 3, h: 1 },
-      ];
-    },
-  },
-  duo: {
-    label: 'Duo',
-    panels() {
-      return [
-        { x: 0, y: 0, w: 0.5, h: 1 },
-        { x: 0.5, y: 0, w: 0.5, h: 1 },
-      ];
-    },
-  },
-};
+export { LAYOUTS, GRADES };
 
-/** The colour grades: a photo filter plus wash colours painted over the cover. */
-export const GRADES = {
-  sunset: {
-    label: 'Vice Sunset',
-    filter: 'saturate(1.35) contrast(1.07) brightness(1.03)',
-    top: 'rgba(255, 94, 98, 0.26)',
-    bottom: 'rgba(255, 140, 66, 0.42)',
-    sun: ['#ffd319', '#ff2975'],
-  },
-  neon: {
-    label: 'Neon Night',
-    filter: 'saturate(1.5) contrast(1.12) brightness(0.97)',
-    top: 'rgba(255, 41, 117, 0.32)',
-    bottom: 'rgba(0, 229, 255, 0.28)',
-    sun: ['#ff9de2', '#7b2ff7'],
-  },
-  miami: {
-    label: 'Miami Pop',
-    filter: 'saturate(1.55) contrast(1.08) brightness(1.04)',
-    top: 'rgba(255, 41, 117, 0.30)',
-    bottom: 'rgba(0, 229, 255, 0.34)',
-    sun: ['#00e5ff', '#ff2975'],
-  },
-  golden: {
-    label: 'Golden Hour',
-    filter: 'saturate(1.28) contrast(1.05) brightness(1.06) sepia(0.25)',
-    top: 'rgba(255, 183, 77, 0.20)',
-    bottom: 'rgba(255, 122, 26, 0.36)',
-    sun: ['#fff3a3', '#ff7e00'],
-  },
-  noir: {
-    label: 'Palm Noir',
-    filter: 'grayscale(1) contrast(1.25) brightness(1.03)',
-    top: 'rgba(120, 140, 255, 0.12)',
-    bottom: 'rgba(255, 41, 117, 0.22)',
-    sun: ['#f5f5f5', '#c0c0c0'],
-  },
-  ultraviolet: {
-    label: 'Ultra Violet',
-    filter: 'saturate(1.4) contrast(1.12) brightness(0.98) hue-rotate(-18deg)',
-    top: 'rgba(123, 47, 247, 0.30)',
-    bottom: 'rgba(255, 41, 117, 0.30)',
-    sun: ['#c084fc', '#ff2975'],
-  },
-};
-
-/** One-click looks: a layout + grade + lettering + title position in one tap. */
+/** One-click looks: a layout + grade + lettering + title spot in one tap. */
 export const PRESETS = {
   sunsetHeist: {
     label: 'Sunset Heist',
     layout: 'heroLeft', grade: 'sunset', titleStyle: 'sunset', titlePos: 'bottom',
+    captionFont: 'condensed', captionAlign: 'center',
   },
   neonNights: {
     label: 'Neon Nights',
     layout: 'hero3', grade: 'neon', titleStyle: 'neon', titlePos: 'bottom',
+    captionFont: 'condensed', captionAlign: 'center',
   },
   miamiPop: {
     label: 'Miami Pop',
     layout: 'grid4', grade: 'miami', titleStyle: 'white', titlePos: 'bottom',
+    captionFont: 'condensed', captionAlign: 'center',
   },
   goldRush: {
     label: 'Gold Rush',
     layout: 'strips3', grade: 'golden', titleStyle: 'sunset', titlePos: 'bottom',
+    captionFont: 'serif', captionAlign: 'center',
   },
   noirDrive: {
     label: 'Noir Drive',
     layout: 'duo', grade: 'noir', titleStyle: 'outline', titlePos: 'top',
+    captionFont: 'typewriter', captionAlign: 'left',
+  },
+  chromeRooftop: {
+    label: 'Chrome Rooftop',
+    layout: 'heroBottom', grade: 'chrome', titleStyle: 'white', titlePos: 'bottom',
+    captionFont: 'typewriter', captionAlign: 'center',
   },
 };
 
-/** The caption lettering styles. */
+/** The caption lettering styles (the title's fill). */
 export const TITLE_STYLES = {
   white: { label: 'White' },
   sunset: { label: 'Sunset gradient' },
   neon: { label: 'Neon pink' },
   outline: { label: 'Hollow outline' },
+};
+
+/**
+ * The caption fonts. Condensed is the poster default; serif is the
+ * classic-movie-poster voice; typewriter is the case-file voice. Each
+ * entry gives the title's font for a size and the subtitle's font, so
+ * the two lines always contrast instead of matching by accident.
+ */
+export const CAPTION_FONTS = {
+  condensed: {
+    label: 'Condensed poster',
+    title: (size) => `900 ${size}px "ViceCondensed", "Arial Narrow", sans-serif`,
+    subtitle: (size) => `italic 700 ${size}px "ViceSerif", Georgia, serif`,
+  },
+  serif: {
+    label: 'Serif classic',
+    title: (size) => `italic 700 ${size}px "ViceSerif", Georgia, serif`,
+    subtitle: (size) => `700 ${size}px "ViceCondensed", "Arial Narrow", sans-serif`,
+  },
+  typewriter: {
+    label: 'Typewriter',
+    title: (size) => `700 ${size}px "Courier New", ui-monospace, monospace`,
+    subtitle: (size) => `400 ${size}px "Courier New", ui-monospace, monospace`,
+  },
+};
+
+/** Where the caption block sits horizontally: centre, left or right. */
+export const CAPTION_ALIGN = {
+  center: { label: 'Centred' },
+  left: { label: 'Left' },
+  right: { label: 'Right' },
 };
 
 /** The three export sizes the app offers. */
@@ -168,6 +107,8 @@ export function defaultState() {
     titleStyle: 'sunset',
     titlePos: 'bottom',
     titleScale: 1,
+    captionFont: 'condensed',
+    captionAlign: 'center',
     faceAware: true,
     size: '1080x1080',
     frame: true,
@@ -176,43 +117,40 @@ export function defaultState() {
     sun: true,
     palms: true,
     selected: 0,
-    // One slot per panel: which photo (index into state.photos), zoom and pan.
-    // Slot 0 is the hero: a 1.25x close-up by default, anchored on the face.
-    slots: [
-      { photo: 0, zoom: 1.25, ox: 0, oy: 0 },
-      { photo: 1, zoom: 1, ox: 0, oy: 0 },
-      { photo: 0, zoom: 1, ox: 0, oy: 0 },
-      { photo: 1, zoom: 1, ox: 0, oy: 0 },
-    ],
+    // One slot per panel: which photo (index into state.photos), zoom and
+    // pan. Slot 0 is the hero: a 1.25x close-up by default, anchored on
+    // the face. The photos are spread so neighbours never repeat.
+    slots: defaultSlots('heroLeft', 3),
   };
 }
 
 /** Panel rects (in pixels) for a state on a cover of w x h. */
 export function panelRects(state, w, h) {
-  return LAYOUTS[state.layout].panels(w, h).map((p) => ({
-    x: p.x * w,
-    y: p.y * h,
-    w: p.w * w,
-    h: p.h * h,
-  }));
+  return panelRectsFor(state.layout, w, h);
+}
+
+/** Re-spreads a state's slots after the layout changed (photos only). */
+export function relayoutSlots(state, photoCount) {
+  return respreadSlots(state.slots, state.layout, photoCount);
 }
 
 /**
- * Finds the subject of a photo: the face, as the densest band of skin-tone
- * pixels near the top of the picture (classic YCbCr skin range on a small
- * downscaled copy). A plain centroid of all skin pixels would land on arms
- * and torsos instead of the face, so the face band — the topmost rows with
- * real skin density, plus the quarter of the picture below them — is what
- * gets averaged. Returns {x, y} in 0..1 image coordinates, or null when too
- * few skin pixels were found — the caller then falls back to the upper
- * third, where a face usually sits. Runs once per photo when it loads; the
- * result is cached on the photo.
+ * Finds the subject of a photo: the face, as the densest band of
+ * skin-tone pixels near the top of the picture (classic YCbCr skin range
+ * on a small downscaled copy). A plain centroid of all skin pixels would
+ * land on arms and torsos instead of the face, so the face band — the
+ * topmost rows with real skin density, plus the quarter of the picture
+ * below them — is what gets averaged. Returns {x, y} in 0..1 image
+ * coordinates, or `fallback` (the sample's known face position, or the
+ * upper third) when too few skin pixels were found. Runs once per photo
+ * when it loads; the result is cached on the photo.
  */
-export function detectFocalPoint(img) {
+export function detectFocalPoint(img, fallback) {
+  const fallbackPoint = fallback ?? { x: 0.5, y: 0.35 };
   try {
     const iw = img.naturalWidth;
     const ih = img.naturalHeight;
-    if (!iw || !ih || typeof document === 'undefined') return null;
+    if (!iw || !ih || typeof document === 'undefined') return fallbackPoint;
     const sw = 64;
     const sh = Math.max(1, Math.round((64 * ih) / iw));
     const probe = document.createElement('canvas');
@@ -241,12 +179,16 @@ export function detectFocalPoint(img) {
       rowCount[py] += 1;
       total += 1;
     }
-    // Fewer than 0.4% skin pixels: no reliable face — no focal point.
-    if (total < sw * sh * 0.004) return null;
+    // Fewer than 0.4% skin pixels: no reliable face — use the fallback.
+    if (total < sw * sh * 0.004) return fallbackPoint;
     // The face band: the first row with real skin density, plus the quarter
-    // of the picture below it. Fall back to the top half, then all skin.
+    // of the picture below it. The search skips the top tenth of the
+    // picture: a sunset sky is full of pink-orange cloud that passes the
+    // skin test, and it lives at the top — a face almost never does.
+    // Without the guard the "face" lands in the clouds.
+    const skyRows = Math.floor(sh * 0.1);
     let topRow = -1;
-    for (let y = 0; y < sh; y++) {
+    for (let y = skyRows; y < sh; y++) {
       if (rowCount[y] >= Math.max(2, sw * 0.04)) { topRow = y; break; }
     }
     const averageIn = (y0, y1) => {
@@ -269,27 +211,29 @@ export function detectFocalPoint(img) {
     }
     const topHalf = averageIn(0, Math.floor(sh / 2));
     if (topHalf) return topHalf;
-    const all = averageIn(0, sh - 1);
-    return all;
+    return averageIn(0, sh - 1) ?? fallbackPoint;
   } catch {
-    return null;
+    return fallbackPoint;
   }
 }
 
-/** Draws one photo into a panel rect, cropped to fill, at the slot's zoom/pan. */
-function drawPhotoInto(ctx, photo, rect, slot, faceAware) {
-  if (!photo || !photo.img) return false;
+/**
+ * Where a photo lands when drawn into a panel: the top-left corner and
+ * size of the drawn image. The photo is scaled to cover the panel, then
+ * shifted so the focal point (the face, when face-aware) lands near the
+ * panel's horizontal centre and upper third, clamped so the photo still
+ * covers the whole panel, then panned by the slot's offsets. The sun
+ * placement reuses this, so the face's panel position is computed once,
+ * in one place, and both the crop and the sun agree on where the face is.
+ */
+function photoTransform(photo, rect, slot, faceAware) {
   const img = photo.img;
   const iw = img.naturalWidth;
   const ih = img.naturalHeight;
-  if (!iw || !ih) return false;
   const base = Math.max(rect.w / iw, rect.h / ih);
   const scale = base * (slot?.zoom ?? 1);
   const dw = iw * scale;
   const dh = ih * scale;
-  // Start centred, then anchor the focal point (face) in the panel: the
-  // face lands near the panel's horizontal centre and upper third, and the
-  // crop is clamped so the photo still covers the whole panel.
   let dx = rect.x + (rect.w - dw) / 2;
   let dy = rect.y + (rect.h - dh) / 2;
   const focal = faceAware ? (photo.focal ?? { x: 0.5, y: 0.35 }) : null;
@@ -303,11 +247,30 @@ function drawPhotoInto(ctx, photo, rect, slot, faceAware) {
   }
   dx += (slot?.ox ?? 0) * rect.w;
   dy += (slot?.oy ?? 0) * rect.h;
+  return { dx, dy, dw, dh };
+}
+
+/** The focal point's position in panel pixels, via the same transform. */
+function focalInPanel(photo, rect, slot, faceAware) {
+  const t = photoTransform(photo, rect, slot, faceAware);
+  const focal = photo.focal ?? { x: 0.5, y: 0.35 };
+  return {
+    x: Math.max(rect.x, Math.min(rect.x + rect.w, t.dx + focal.x * t.dw)),
+    y: Math.max(rect.y, Math.min(rect.y + rect.h, t.dy + focal.y * t.dh)),
+  };
+}
+
+/** Draws one photo into a panel rect, cropped to fill, at the slot's zoom/pan. */
+function drawPhotoInto(ctx, photo, rect, slot, faceAware) {
+  if (!photo || !photo.img) return false;
+  const img = photo.img;
+  if (!img.naturalWidth || !img.naturalHeight) return false;
+  const t = photoTransform(photo, rect, slot, faceAware);
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
   ctx.clip();
-  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.drawImage(img, t.dx, t.dy, t.dw, t.dh);
   ctx.restore();
   return true;
 }
@@ -337,6 +300,57 @@ function drawSun(ctx, cx, cy, r, colors) {
     ctx.fillRect(cx - half, y0 + gap / 2, half * 2, y1 - y0 - gap);
   }
   ctx.restore();
+}
+
+/**
+ * Where the synthwave sun goes on the hero panel — and, crucially, where
+ * it does not go. Round 4 parked the sun at a fixed corner of the hero
+ * panel (85% across, 12% down), which put its disc on the subject's hair
+ * whenever the face-aware crop anchored the face near that corner. This
+ * version picks between the hero panel's two TOP corners only — a sun
+ * belongs in the sky, never low in the frame where it ends up behind the
+ * caption — scores each by its distance from the face, and then checks
+ * the winner against a keep-out circle around the face (face plus hair).
+ * When the winner is still too close, the sun shrinks and slides toward
+ * its corner until the disc clears the keep-out circle. The soft halo
+ * may still wash over the hair — light is fine, a hard disc edge on a
+ * forehead is not.
+ */
+export function sunSpot(heroRect, focalPx, radius) {
+  const keepOut = Math.max(heroRect.w, heroRect.h) * 0.2;
+  const inset = radius * 1.05;
+  const corners = [
+    { x: heroRect.x + heroRect.w - inset, y: heroRect.y + inset },
+    { x: heroRect.x + inset, y: heroRect.y + inset },
+  ];
+  let best = null;
+  for (const corner of corners) {
+    const dist = Math.hypot(corner.x - focalPx.x, corner.y - focalPx.y);
+    if (best === null || dist > best.dist) best = { ...corner, dist };
+  }
+  let r = radius;
+  let cx = best.x;
+  let cy = best.y;
+  // Clearance between the sun's disc and the keep-out circle.
+  let clearance = best.dist - (r + keepOut);
+  if (clearance < radius * 0.25) {
+    // Shrink first (never below half size), then slide toward the corner.
+    const needed = radius * 0.25 - clearance;
+    const shrink = Math.min(needed, radius * 0.5);
+    r -= shrink;
+    clearance += shrink;
+    if (clearance < radius * 0.25) {
+      const shortfall = radius * 0.25 - clearance;
+      const awayX = cx - focalPx.x;
+      const awayY = cy - focalPx.y;
+      const len = Math.hypot(awayX, awayY) || 1;
+      cx += (awayX / len) * shortfall;
+      cy += (awayY / len) * shortfall;
+      cx = Math.max(heroRect.x + r, Math.min(heroRect.x + heroRect.w - r, cx));
+      cy = Math.max(heroRect.y + r, Math.min(heroRect.y + heroRect.h - r, cy));
+    }
+  }
+  return { x: cx, y: cy, r };
 }
 
 /** One palm silhouette: a leaning trunk and fronds that droop like an umbrella. */
@@ -403,21 +417,39 @@ function getGrainTile() {
 }
 
 /** Fits a title to a width by shrinking it, and returns the font size used. */
-function fitTitle(ctx, text, maxWidth, startSize) {
+function fitTitle(ctx, text, maxWidth, startSize, fontFor) {
   let size = startSize;
-  ctx.font = `900 ${size}px "ViceCondensed", "Arial Narrow", sans-serif`;
+  ctx.font = fontFor(size);
   while (size > 20 && ctx.measureText(text).width > maxWidth) {
     size -= 4;
-    ctx.font = `900 ${size}px "ViceCondensed", "Arial Narrow", sans-serif`;
+    ctx.font = fontFor(size);
   }
   return size;
 }
 
+/** The caption block's anchor: its x and the canvas text alignment. */
+function captionAnchor(w, align) {
+  if (align === 'left') return { tx: w * 0.05, textAlign: 'left' };
+  if (align === 'right') return { tx: w * 0.95, textAlign: 'right' };
+  return { tx: w / 2, textAlign: 'center' };
+}
+
+/** The rule line's left edge for an anchor and a rule width. */
+function ruleLeft(tx, align, ruleW) {
+  if (align === 'left') return tx;
+  if (align === 'right') return tx - ruleW;
+  return tx - ruleW / 2;
+}
+
 /**
- * Draws the caption (title + subtitle) at the top or the bottom of the cover,
- * over a dark scrim so the lettering reads on any photo. The title is drawn
- * with a 3D extrusion — magenta and black copies offset below it — a thick
- * dark outline, and a slight tilt, so it pops like poster lettering.
+ * Draws the caption (title + subtitle) at the top or the bottom of the
+ * cover, over a dark scrim so the lettering reads on any photo. The title
+ * is drawn with a 3D extrusion — magenta and black copies offset below
+ * it — a thick dark outline, and a slight tilt, so it pops like poster
+ * lettering. The font comes from state.captionFont and the block from
+ * state.captionAlign (centred, left or right); the subtitle always takes
+ * the contrasting voice, so a serif title gets a condensed subtitle and
+ * a typewriter title gets a typewriter subtitle.
  */
 function drawCaption(ctx, state, w, h, frame) {
   const title = (state.title ?? '').trim().toUpperCase();
@@ -444,22 +476,25 @@ function drawCaption(ctx, state, w, h, frame) {
   ctx.fillRect(0, top ? 0 : bandY - bandH * 0.5, w, top ? bandY + bandH * 1.1 : h - bandY + bandH * 0.5);
 
   if (!title) return;
-  const maxW = w * 0.9;
+  const font = CAPTION_FONTS[state.captionFont] ?? CAPTION_FONTS.condensed;
+  const align = state.captionAlign === 'left' || state.captionAlign === 'right'
+    ? state.captionAlign : 'center';
+  const { tx, textAlign } = captionAnchor(w, align);
+  const maxW = (align === 'center' ? w * 0.9 : w * 0.92);
   const scale = Math.max(0.8, Math.min(1.3, state.titleScale ?? 1));
-  const size = fitTitle(ctx, title, maxW, h * 0.135 * scale);
-  const tx = w / 2;
+  const size = fitTitle(ctx, title, maxW, h * 0.135 * scale, font.title);
   const ty = top ? bandY + bandH * 0.42 : bandY + bandH * 0.5;
   const subY = top ? ty + size * 0.52 : bandY + bandH * 0.94;
   ctx.save();
   ctx.translate(tx, ty);
   ctx.rotate(-0.026); // about -1.5 degrees: a poster tilt, barely there.
   ctx.translate(-tx, -ty);
-  ctx.textAlign = 'center';
+  ctx.textAlign = textAlign;
   ctx.textBaseline = 'alphabetic';
   ctx.lineJoin = 'round';
   // 3D extrusion: magenta copy, then black copy, both offset below.
   ctx.fillStyle = '#ff2975';
-  ctx.font = `900 ${size}px "ViceCondensed", "Arial Narrow", sans-serif`;
+  ctx.font = font.title(size);
   ctx.fillText(title, tx + size * 0.02, ty + size * 0.075);
   ctx.fillStyle = 'rgba(10, 2, 18, 0.95)';
   ctx.fillText(title, tx, ty + size * 0.045);
@@ -490,36 +525,35 @@ function drawCaption(ctx, state, w, h, frame) {
   const ruleW = Math.min(maxW * 0.52, ctx.measureText(title).width * 0.62);
   const ruleColor = state.titleStyle === 'neon' ? '#00e5ff'
     : state.titleStyle === 'outline' ? '#00e5ff' : '#ffd319';
+  const ruleX = ruleLeft(tx, align, ruleW);
   ctx.fillStyle = ruleColor;
-  ctx.fillRect(tx - ruleW / 2, ty + size * 0.17, ruleW, Math.max(4, size * 0.05));
+  ctx.fillRect(ruleX, ty + size * 0.17, ruleW, Math.max(4, size * 0.05));
   ctx.fillStyle = '#ff2975';
-  ctx.fillRect(tx - ruleW / 2, ty + size * 0.17 + Math.max(4, size * 0.05) + 3, ruleW, Math.max(2, size * 0.022));
+  ctx.fillRect(ruleX, ty + size * 0.17 + Math.max(4, size * 0.05) + 3, ruleW, Math.max(2, size * 0.022));
   ctx.restore();
 
   if (subtitle) {
     const subSize = Math.max(16, h * 0.034);
-    ctx.font = `italic 700 ${subSize}px "ViceSerif", Georgia, serif`;
-    ctx.textAlign = 'center';
+    ctx.font = font.subtitle(subSize);
+    ctx.textAlign = textAlign;
     ctx.fillStyle = '#ffe9f6';
     ctx.shadowColor = '#ff2975';
     ctx.shadowBlur = subSize * 0.5;
-    ctx.fillText(subtitle, w / 2, subY);
+    ctx.fillText(subtitle, tx, subY);
     ctx.shadowBlur = 0;
   }
 }
 
 /**
  * Draws the whole cover for `state` onto `canvas` (at the canvas's own size).
- * `photos` is the array of {img, focal} the slots point into.
+ * `photos` is the array of {img, focal, name} the slots point into.
  */
 export function drawCover(canvas, state, photos) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
-  const grade = GRADES[state.grade] ?? GRADES.sunset;
-  // Clamp the wash strength: a stray value above 1 would otherwise drown
-  // the photos in a fully opaque colour wash.
-  const amount = Math.max(0, Math.min(1, state.gradeAmount ?? 0.9));
+  const grade = gradeFor(state.grade);
+  const amount = clampAmount(state.gradeAmount ?? 0.9);
   const rects = panelRects(state, w, h);
   const gap = Math.max(4, Math.round(w * 0.008));
 
@@ -564,8 +598,8 @@ export function drawCover(canvas, state, photos) {
   });
   ctx.restore();
 
-  // Grade wash over the whole cover: bolder than round 3, so the sunset or
-  // neon grade is unmistakable even on a bright daylight photo.
+  // Grade wash over the whole cover: bold, so the sunset or neon grade is
+  // unmistakable even on a bright daylight photo.
   ctx.save();
   ctx.globalAlpha = amount;
   const wash = ctx.createLinearGradient(0, inner.y, 0, inner.y + inner.h);
@@ -601,13 +635,24 @@ export function drawCover(canvas, state, photos) {
     }
   }
 
-  // Synthwave sun, on the hero panel's top corner — small enough to sit in
-  // the sky, clear of the face the face-aware crop anchors at the panel's
-  // centre. With a glow halo.
-  const hero = photoRects[0];
-  if (state.sun) {
-    const r = Math.min(hero.w, hero.h) * 0.15;
-    drawSun(ctx, hero.x + hero.w * 0.85, hero.y + hero.h * 0.12, r, grade.sun);
+  // Synthwave sun — on the largest panel, the visual hero, not always
+  // panel 0: in Hero Bottom the hero is the bottom panel, and a sun on
+  // the small top-left panel would crowd that small photo's subject.
+  // Placed by sunSpot, which keeps its disc clear of the face the
+  // face-aware crop anchored. With a glow halo.
+  let sunPanel = 0;
+  photoRects.forEach((rect, i) => {
+    if (rect.w * rect.h > photoRects[sunPanel].w * photoRects[sunPanel].h) sunPanel = i;
+  });
+  const sunRect = photoRects[sunPanel];
+  if (state.sun && sunRect) {
+    const sunSlot = state.slots[sunPanel] ?? { photo: 0, zoom: 1, ox: 0, oy: 0 };
+    const sunPhoto = photos[sunSlot.photo] ?? photos[0];
+    const faceAt = sunPhoto
+      ? focalInPanel(sunPhoto, sunRect, sunSlot, state.faceAware !== false)
+      : { x: sunRect.x + sunRect.w * 0.5, y: sunRect.y + sunRect.h * 0.35 };
+    const spot = sunSpot(sunRect, faceAt, Math.min(sunRect.w, sunRect.h) * 0.15);
+    drawSun(ctx, spot.x, spot.y, spot.r, grade.sun);
   }
 
   // Vignette: darkened corners pull the eye to the middle.

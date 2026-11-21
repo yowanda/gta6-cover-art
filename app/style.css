@@ -137,6 +137,12 @@ body.shot-cover #preview {
   border-radius: 0; box-shadow: none; object-fit: contain;
 }
 
+/* Caption font row: each button previews its own voice. */
+#captionFontBtns { margin-top: 8px; }
+#captionFontBtns button:nth-child(1) { font-family: "ViceCondensed", sans-serif; letter-spacing: 1px; }
+#captionFontBtns button:nth-child(2) { font-family: Georgia, serif; font-style: italic; }
+#captionFontBtns button:nth-child(3) { font-family: "Courier New", monospace; }
+
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .preview { position: static; }
