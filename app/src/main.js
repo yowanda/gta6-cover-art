@@ -6,6 +6,8 @@
 // re-spread their photos — no two neighbours repeating — when the layout
 // changes. The focal point is measured when each photo loads, with the
 // sample's known face position as the fallback.
+// Round 6: a "Surprise me" button that rolls a random layout, grade and
+// look in one tap.
 import { LAYOUTS } from './layouts.js';
 import { GRADES } from './grades.js';
 import { SAMPLES, sampleUrl, fallbackFocal } from './panels.js';
@@ -175,6 +177,34 @@ function buildPresetButtons() {
   buildButtons('presetBtns', PRESETS, null, applyPreset);
 }
 
+/** Picks a random key from a map of {key: …} entries. */
+function randomKey(entries) {
+  const keys = Object.keys(entries);
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
+/**
+ * Surprise me: rolls a random layout, grade, title style, title spot,
+ * caption font and alignment, plus a grade strength and title size in
+ * the lively end of their ranges — one tap, a whole new cover. The
+ * photos, caption text and finish toggles stay exactly as they are.
+ */
+function surpriseMe() {
+  state.layout = randomKey(LAYOUTS);
+  state.grade = randomKey(GRADES);
+  state.titleStyle = randomKey(TITLE_STYLES);
+  state.titlePos = Math.random() < 0.8 ? 'bottom' : 'top';
+  state.captionFont = randomKey(CAPTION_FONTS);
+  state.captionAlign = randomKey(CAPTION_ALIGN);
+  state.gradeAmount = 0.7 + Math.random() * 0.3;
+  state.titleScale = 0.9 + Math.random() * 0.3;
+  state.selected = 0;
+  state.slots = relayoutSlots(state, photos.length);
+  syncUI();
+  redraw();
+  setStatus(`Surprise: ${LAYOUTS[state.layout].label} + ${GRADES[state.grade].label} — roll again or tweak it.`);
+}
+
 function buildTitleStyleButtons() {
   buildButtons('titleStyleBtns', TITLE_STYLES, state.titleStyle, (key) => { state.titleStyle = key; });
 }
@@ -328,6 +358,7 @@ function bindControls() {
     event.target.value = '';
   });
   $('sampleBtn').addEventListener('click', loadSamples);
+  $('surpriseBtn').addEventListener('click', surpriseMe);
   $('titleInput').addEventListener('input', (event) => {
     state.title = event.target.value;
     redraw();
@@ -398,7 +429,7 @@ function initEditor() {
 }
 
 // The screenshot scenes drive the same editor through this handle.
-window.__vice = { state, photos, redraw, loadSamples, sizePreviewCanvas, setStatus, syncUI, applyPreset, exportPng, exportAllSizes };
+window.__vice = { state, photos, redraw, loadSamples, sizePreviewCanvas, setStatus, syncUI, applyPreset, surpriseMe, exportPng, exportAllSizes };
 
 const shot = new URLSearchParams(location.search).get('shot');
 if (shot) {
