@@ -4,18 +4,33 @@
 // and palm silhouettes (drawn here, our own art) set the scene, and the caption
 // is lettered in big condensed capitals with a neon script subtitle.
 // Pure canvas 2D, no library, no network: every pixel comes from this file.
+// Round 4: face-aware crops keep the subject's face in the hero close-up,
+// the grade washes are bolder, the title is bigger with a 3D extrusion,
+// and there are six layouts, six grades and five one-click looks.
 
-/** The four panel layouts. Each returns panel rects as fractions of the cover. */
+/** The six panel layouts. Each returns panel rects as fractions of the cover. */
 export const LAYOUTS = {
   hero3: {
     label: 'Hero + 3',
     panels(w, h) {
-      const split = 0.6;
+      const split = 0.58;
       return [
         { x: 0, y: 0, w: 1, h: split },
         { x: 0, y: split, w: 1 / 3, h: 1 - split },
         { x: 1 / 3, y: split, w: 1 / 3, h: 1 - split },
         { x: 2 / 3, y: split, w: 1 / 3, h: 1 - split },
+      ];
+    },
+  },
+  heroLeft: {
+    label: 'Hero Left',
+    panels(w, h) {
+      const split = 0.55;
+      return [
+        { x: 0, y: 0, w: split, h: 1 },
+        { x: split, y: 0, w: 1 - split, h: 1 / 3 },
+        { x: split, y: 1 / 3, w: 1 - split, h: 1 / 3 },
+        { x: split, y: 2 / 3, w: 1 - split, h: 1 / 3 },
       ];
     },
   },
@@ -46,38 +61,93 @@ export const LAYOUTS = {
       ];
     },
   },
+  duo: {
+    label: 'Duo',
+    panels() {
+      return [
+        { x: 0, y: 0, w: 0.5, h: 1 },
+        { x: 0.5, y: 0, w: 0.5, h: 1 },
+      ];
+    },
+  },
 };
 
 /** The colour grades: a photo filter plus wash colours painted over the cover. */
 export const GRADES = {
   sunset: {
     label: 'Vice Sunset',
-    filter: 'saturate(1.3) contrast(1.06) brightness(1.02)',
-    top: 'rgba(255, 94, 98, 0.20)',
-    bottom: 'rgba(255, 140, 66, 0.34)',
+    filter: 'saturate(1.35) contrast(1.07) brightness(1.03)',
+    top: 'rgba(255, 94, 98, 0.26)',
+    bottom: 'rgba(255, 140, 66, 0.42)',
     sun: ['#ffd319', '#ff2975'],
   },
   neon: {
     label: 'Neon Night',
-    filter: 'saturate(1.45) contrast(1.1) brightness(0.96)',
-    top: 'rgba(255, 41, 117, 0.26)',
-    bottom: 'rgba(0, 229, 255, 0.22)',
+    filter: 'saturate(1.5) contrast(1.12) brightness(0.97)',
+    top: 'rgba(255, 41, 117, 0.32)',
+    bottom: 'rgba(0, 229, 255, 0.28)',
     sun: ['#ff9de2', '#7b2ff7'],
+  },
+  miami: {
+    label: 'Miami Pop',
+    filter: 'saturate(1.55) contrast(1.08) brightness(1.04)',
+    top: 'rgba(255, 41, 117, 0.30)',
+    bottom: 'rgba(0, 229, 255, 0.34)',
+    sun: ['#00e5ff', '#ff2975'],
   },
   golden: {
     label: 'Golden Hour',
-    filter: 'saturate(1.25) contrast(1.04) brightness(1.05) sepia(0.22)',
-    top: 'rgba(255, 183, 77, 0.16)',
-    bottom: 'rgba(255, 122, 26, 0.30)',
+    filter: 'saturate(1.28) contrast(1.05) brightness(1.06) sepia(0.25)',
+    top: 'rgba(255, 183, 77, 0.20)',
+    bottom: 'rgba(255, 122, 26, 0.36)',
     sun: ['#fff3a3', '#ff7e00'],
   },
   noir: {
     label: 'Palm Noir',
-    filter: 'grayscale(1) contrast(1.22) brightness(1.02)',
-    top: 'rgba(120, 140, 255, 0.10)',
-    bottom: 'rgba(255, 41, 117, 0.18)',
+    filter: 'grayscale(1) contrast(1.25) brightness(1.03)',
+    top: 'rgba(120, 140, 255, 0.12)',
+    bottom: 'rgba(255, 41, 117, 0.22)',
     sun: ['#f5f5f5', '#c0c0c0'],
   },
+  ultraviolet: {
+    label: 'Ultra Violet',
+    filter: 'saturate(1.4) contrast(1.12) brightness(0.98) hue-rotate(-18deg)',
+    top: 'rgba(123, 47, 247, 0.30)',
+    bottom: 'rgba(255, 41, 117, 0.30)',
+    sun: ['#c084fc', '#ff2975'],
+  },
+};
+
+/** One-click looks: a layout + grade + lettering + title position in one tap. */
+export const PRESETS = {
+  sunsetHeist: {
+    label: 'Sunset Heist',
+    layout: 'heroLeft', grade: 'sunset', titleStyle: 'sunset', titlePos: 'bottom',
+  },
+  neonNights: {
+    label: 'Neon Nights',
+    layout: 'hero3', grade: 'neon', titleStyle: 'neon', titlePos: 'bottom',
+  },
+  miamiPop: {
+    label: 'Miami Pop',
+    layout: 'grid4', grade: 'miami', titleStyle: 'white', titlePos: 'bottom',
+  },
+  goldRush: {
+    label: 'Gold Rush',
+    layout: 'strips3', grade: 'golden', titleStyle: 'sunset', titlePos: 'bottom',
+  },
+  noirDrive: {
+    label: 'Noir Drive',
+    layout: 'duo', grade: 'noir', titleStyle: 'outline', titlePos: 'top',
+  },
+};
+
+/** The caption lettering styles. */
+export const TITLE_STYLES = {
+  white: { label: 'White' },
+  sunset: { label: 'Sunset gradient' },
+  neon: { label: 'Neon pink' },
+  outline: { label: 'Hollow outline' },
 };
 
 /** The three export sizes the app offers. */
@@ -90,12 +160,15 @@ export const SIZES = {
 /** A fresh default state for the editor. */
 export function defaultState() {
   return {
-    layout: 'hero3',
+    layout: 'heroLeft',
     grade: 'sunset',
-    gradeAmount: 0.85,
+    gradeAmount: 0.9,
     title: 'VICE CITY',
     subtitle: 'neon nights, palm dreams',
-    titleStyle: 'white',
+    titleStyle: 'sunset',
+    titlePos: 'bottom',
+    titleScale: 1,
+    faceAware: true,
     size: '1080x1080',
     frame: true,
     grain: true,
@@ -104,8 +177,9 @@ export function defaultState() {
     palms: true,
     selected: 0,
     // One slot per panel: which photo (index into state.photos), zoom and pan.
+    // Slot 0 is the hero: a 1.25x close-up by default, anchored on the face.
     slots: [
-      { photo: 0, zoom: 1, ox: 0, oy: 0 },
+      { photo: 0, zoom: 1.25, ox: 0, oy: 0 },
       { photo: 1, zoom: 1, ox: 0, oy: 0 },
       { photo: 0, zoom: 1, ox: 0, oy: 0 },
       { photo: 1, zoom: 1, ox: 0, oy: 0 },
@@ -123,8 +197,87 @@ export function panelRects(state, w, h) {
   }));
 }
 
+/**
+ * Finds the subject of a photo: the face, as the densest band of skin-tone
+ * pixels near the top of the picture (classic YCbCr skin range on a small
+ * downscaled copy). A plain centroid of all skin pixels would land on arms
+ * and torsos instead of the face, so the face band — the topmost rows with
+ * real skin density, plus the quarter of the picture below them — is what
+ * gets averaged. Returns {x, y} in 0..1 image coordinates, or null when too
+ * few skin pixels were found — the caller then falls back to the upper
+ * third, where a face usually sits. Runs once per photo when it loads; the
+ * result is cached on the photo.
+ */
+export function detectFocalPoint(img) {
+  try {
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    if (!iw || !ih || typeof document === 'undefined') return null;
+    const sw = 64;
+    const sh = Math.max(1, Math.round((64 * ih) / iw));
+    const probe = document.createElement('canvas');
+    probe.width = sw;
+    probe.height = sh;
+    const pctx = probe.getContext('2d', { willReadFrequently: true });
+    pctx.drawImage(img, 0, 0, sw, sh);
+    const data = pctx.getImageData(0, 0, sw, sh).data;
+    const skin = new Uint8Array(sw * sh);
+    const rowCount = new Float64Array(sh);
+    let total = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const y = 0.299 * r + 0.587 * g + 0.114 * b;
+      const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+      const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+      const isSkin = r > 95 && g > 40 && b > 20 && r > g && r > b
+        && (r - g) > 15 && cb >= 77 && cb <= 127 && cr >= 133 && cr <= 173
+        && y > 40;
+      if (!isSkin) continue;
+      const px = (i / 4) % sw;
+      const py = Math.floor(i / 4 / sw);
+      skin[py * sw + px] = 1;
+      rowCount[py] += 1;
+      total += 1;
+    }
+    // Fewer than 0.4% skin pixels: no reliable face — no focal point.
+    if (total < sw * sh * 0.004) return null;
+    // The face band: the first row with real skin density, plus the quarter
+    // of the picture below it. Fall back to the top half, then all skin.
+    let topRow = -1;
+    for (let y = 0; y < sh; y++) {
+      if (rowCount[y] >= Math.max(2, sw * 0.04)) { topRow = y; break; }
+    }
+    const averageIn = (y0, y1) => {
+      let sx = 0;
+      let sy = 0;
+      let n = 0;
+      for (let y = y0; y <= y1 && y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+          if (!skin[y * sw + x]) continue;
+          sx += x + 0.5;
+          sy += y + 0.5;
+          n += 1;
+        }
+      }
+      return n >= 8 ? { x: sx / n / sw, y: sy / n / sh } : null;
+    };
+    if (topRow >= 0) {
+      const band = averageIn(topRow, topRow + Math.round(sh * 0.25));
+      if (band) return band;
+    }
+    const topHalf = averageIn(0, Math.floor(sh / 2));
+    if (topHalf) return topHalf;
+    const all = averageIn(0, sh - 1);
+    return all;
+  } catch {
+    return null;
+  }
+}
+
 /** Draws one photo into a panel rect, cropped to fill, at the slot's zoom/pan. */
-function drawPhotoInto(ctx, photo, rect, slot) {
+function drawPhotoInto(ctx, photo, rect, slot, faceAware) {
   if (!photo || !photo.img) return false;
   const img = photo.img;
   const iw = img.naturalWidth;
@@ -134,8 +287,22 @@ function drawPhotoInto(ctx, photo, rect, slot) {
   const scale = base * (slot?.zoom ?? 1);
   const dw = iw * scale;
   const dh = ih * scale;
-  const dx = rect.x + (rect.w - dw) / 2 + (slot?.ox ?? 0) * rect.w;
-  const dy = rect.y + (rect.h - dh) / 2 + (slot?.oy ?? 0) * rect.h;
+  // Start centred, then anchor the focal point (face) in the panel: the
+  // face lands near the panel's horizontal centre and upper third, and the
+  // crop is clamped so the photo still covers the whole panel.
+  let dx = rect.x + (rect.w - dw) / 2;
+  let dy = rect.y + (rect.h - dh) / 2;
+  const focal = faceAware ? (photo.focal ?? { x: 0.5, y: 0.35 }) : null;
+  if (focal) {
+    const tx = rect.x + rect.w * 0.5;
+    const ty = rect.y + rect.h * 0.42;
+    const wantX = tx - focal.x * dw;
+    const wantY = ty - focal.y * dh;
+    dx = Math.max(rect.x + rect.w - dw, Math.min(rect.x, wantX));
+    dy = Math.max(rect.y + rect.h - dh, Math.min(rect.y, wantY));
+  }
+  dx += (slot?.ox ?? 0) * rect.w;
+  dy += (slot?.oy ?? 0) * rect.h;
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
@@ -147,10 +314,16 @@ function drawPhotoInto(ctx, photo, rect, slot) {
 
 /** A synthwave sun: stacked gradient bars whose widths follow a circle. */
 function drawSun(ctx, cx, cy, r, colors) {
+  // A soft halo first, so the sun glows against the photo behind it.
+  const halo = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r * 1.6);
+  halo.addColorStop(0, colors[1] + '44');
+  halo.addColorStop(1, colors[1] + '00');
+  ctx.save();
+  ctx.fillStyle = halo;
+  ctx.fillRect(cx - r * 1.6, cy - r * 1.6, r * 3.2, r * 3.2);
   const grad = ctx.createLinearGradient(0, cy - r, 0, cy + r);
   grad.addColorStop(0, colors[0]);
   grad.addColorStop(1, colors[1]);
-  ctx.save();
   ctx.fillStyle = grad;
   const rows = 14;
   for (let i = 0; i < rows; i++) {
@@ -241,8 +414,103 @@ function fitTitle(ctx, text, maxWidth, startSize) {
 }
 
 /**
+ * Draws the caption (title + subtitle) at the top or the bottom of the cover,
+ * over a dark scrim so the lettering reads on any photo. The title is drawn
+ * with a 3D extrusion — magenta and black copies offset below it — a thick
+ * dark outline, and a slight tilt, so it pops like poster lettering.
+ */
+function drawCaption(ctx, state, w, h, frame) {
+  const title = (state.title ?? '').trim().toUpperCase();
+  const subtitle = (state.subtitle ?? '').trim();
+  if (!title && !subtitle) return;
+  const top = state.titlePos === 'top';
+  const bandH = h * 0.22;
+  const bandY = top ? frame * 0.4 : h - bandH - frame * 0.4;
+  // Scrim: dark at the caption edge, fading into the photo.
+  const scrim = ctx.createLinearGradient(
+    0, top ? bandY : bandY + bandH * 0.5,
+    0, top ? bandY + bandH * 1.1 : h,
+  );
+  if (top) {
+    scrim.addColorStop(0, 'rgba(16, 4, 28, 0.88)');
+    scrim.addColorStop(0.55, 'rgba(16, 4, 28, 0.55)');
+    scrim.addColorStop(1, 'rgba(16, 4, 28, 0)');
+  } else {
+    scrim.addColorStop(0, 'rgba(16, 4, 28, 0)');
+    scrim.addColorStop(0.5, 'rgba(16, 4, 28, 0.62)');
+    scrim.addColorStop(1, 'rgba(16, 4, 28, 0.9)');
+  }
+  ctx.fillStyle = scrim;
+  ctx.fillRect(0, top ? 0 : bandY - bandH * 0.5, w, top ? bandY + bandH * 1.1 : h - bandY + bandH * 0.5);
+
+  if (!title) return;
+  const maxW = w * 0.9;
+  const scale = Math.max(0.8, Math.min(1.3, state.titleScale ?? 1));
+  const size = fitTitle(ctx, title, maxW, h * 0.135 * scale);
+  const tx = w / 2;
+  const ty = top ? bandY + bandH * 0.42 : bandY + bandH * 0.5;
+  const subY = top ? ty + size * 0.52 : bandY + bandH * 0.94;
+  ctx.save();
+  ctx.translate(tx, ty);
+  ctx.rotate(-0.026); // about -1.5 degrees: a poster tilt, barely there.
+  ctx.translate(-tx, -ty);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.lineJoin = 'round';
+  // 3D extrusion: magenta copy, then black copy, both offset below.
+  ctx.fillStyle = '#ff2975';
+  ctx.font = `900 ${size}px "ViceCondensed", "Arial Narrow", sans-serif`;
+  ctx.fillText(title, tx + size * 0.02, ty + size * 0.075);
+  ctx.fillStyle = 'rgba(10, 2, 18, 0.95)';
+  ctx.fillText(title, tx, ty + size * 0.045);
+  // Main fill.
+  if (state.titleStyle === 'sunset') {
+    const tg = ctx.createLinearGradient(0, ty - size, 0, ty);
+    tg.addColorStop(0, '#ffd319');
+    tg.addColorStop(0.55, '#ff7e00');
+    tg.addColorStop(1, '#ff2975');
+    ctx.fillStyle = tg;
+  } else if (state.titleStyle === 'neon') {
+    ctx.fillStyle = '#ff9de2';
+    ctx.shadowColor = '#ff2975';
+    ctx.shadowBlur = size * 0.35;
+  } else if (state.titleStyle === 'outline') {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur = size * 0.18;
+  } else {
+    ctx.fillStyle = '#ffffff';
+  }
+  ctx.strokeStyle = 'rgba(16, 4, 28, 0.92)';
+  ctx.lineWidth = Math.max(3, size * 0.11);
+  ctx.strokeText(title, tx, ty);
+  ctx.fillText(title, tx, ty);
+  ctx.shadowBlur = 0;
+  // A double neon rule under the title.
+  const ruleW = Math.min(maxW * 0.52, ctx.measureText(title).width * 0.62);
+  const ruleColor = state.titleStyle === 'neon' ? '#00e5ff'
+    : state.titleStyle === 'outline' ? '#00e5ff' : '#ffd319';
+  ctx.fillStyle = ruleColor;
+  ctx.fillRect(tx - ruleW / 2, ty + size * 0.17, ruleW, Math.max(4, size * 0.05));
+  ctx.fillStyle = '#ff2975';
+  ctx.fillRect(tx - ruleW / 2, ty + size * 0.17 + Math.max(4, size * 0.05) + 3, ruleW, Math.max(2, size * 0.022));
+  ctx.restore();
+
+  if (subtitle) {
+    const subSize = Math.max(16, h * 0.034);
+    ctx.font = `italic 700 ${subSize}px "ViceSerif", Georgia, serif`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffe9f6';
+    ctx.shadowColor = '#ff2975';
+    ctx.shadowBlur = subSize * 0.5;
+    ctx.fillText(subtitle, w / 2, subY);
+    ctx.shadowBlur = 0;
+  }
+}
+
+/**
  * Draws the whole cover for `state` onto `canvas` (at the canvas's own size).
- * `photos` is the array of {img} the slots point into.
+ * `photos` is the array of {img, focal} the slots point into.
  */
 export function drawCover(canvas, state, photos) {
   const ctx = canvas.getContext('2d');
@@ -251,15 +519,15 @@ export function drawCover(canvas, state, photos) {
   const grade = GRADES[state.grade] ?? GRADES.sunset;
   // Clamp the wash strength: a stray value above 1 would otherwise drown
   // the photos in a fully opaque colour wash.
-  const amount = Math.max(0, Math.min(1, state.gradeAmount ?? 0.85));
+  const amount = Math.max(0, Math.min(1, state.gradeAmount ?? 0.9));
   const rects = panelRects(state, w, h);
-  const gap = Math.max(3, Math.round(w * 0.006));
+  const gap = Math.max(4, Math.round(w * 0.008));
 
   // Backdrop: the white poster board shows through the gaps and frame.
   ctx.fillStyle = '#fdf8f2';
   ctx.fillRect(0, 0, w, h);
 
-  const frame = state.frame ? Math.round(Math.min(w, h) * 0.018) : 0;
+  const frame = state.frame ? Math.round(Math.min(w, h) * 0.022) : 0;
   const inner = {
     x: frame,
     y: frame,
@@ -287,7 +555,7 @@ export function drawCover(canvas, state, photos) {
   photoRects.forEach((rect, i) => {
     const slot = state.slots[i] ?? { photo: 0, zoom: 1, ox: 0, oy: 0 };
     const photo = photos[slot.photo] ?? photos[0];
-    const drawn = drawPhotoInto(ctx, photo, rect, slot);
+    const drawn = drawPhotoInto(ctx, photo, rect, slot, state.faceAware !== false);
     if (!drawn) {
       // Empty panel: a deep violet placeholder with a sun motif.
       ctx.fillStyle = '#241533';
@@ -296,7 +564,8 @@ export function drawCover(canvas, state, photos) {
   });
   ctx.restore();
 
-  // Grade wash over the whole cover.
+  // Grade wash over the whole cover: bolder than round 3, so the sunset or
+  // neon grade is unmistakable even on a bright daylight photo.
   ctx.save();
   ctx.globalAlpha = amount;
   const wash = ctx.createLinearGradient(0, inner.y, 0, inner.y + inner.h);
@@ -307,28 +576,38 @@ export function drawCover(canvas, state, photos) {
   ctx.restore();
 
   // White seams between panels, repainted after the wash tinted them.
+  // Each seam runs only along the edge the two panels actually share:
+  // a full-width seam would cut straight across a hero panel (heroLeft).
   ctx.fillStyle = '#fdf8f2';
-  const seamX = new Set();
-  const seamY = new Set();
-  for (const r of innerRects) {
-    if (r.x > inner.x + 1) seamX.add(Math.round(r.x));
-    if (r.y > inner.y + 1) seamY.add(Math.round(r.y));
+  const eps = 1.5;
+  for (let i = 0; i < innerRects.length; i++) {
+    for (let j = i + 1; j < innerRects.length; j++) {
+      const a = innerRects[i];
+      const b = innerRects[j];
+      // Shared vertical edge: a's right edge is b's left edge (or reverse).
+      if (Math.abs(a.x + a.w - b.x) < eps || Math.abs(b.x + b.w - a.x) < eps) {
+        const x = Math.abs(a.x + a.w - b.x) < eps ? a.x + a.w : b.x + b.w;
+        const y0 = Math.max(a.y, b.y);
+        const y1 = Math.min(a.y + a.h, b.y + b.h);
+        if (y1 > y0) ctx.fillRect(x - gap / 2, y0, gap, y1 - y0);
+      }
+      // Shared horizontal edge: a's bottom edge is b's top edge (or reverse).
+      if (Math.abs(a.y + a.h - b.y) < eps || Math.abs(b.y + b.h - a.y) < eps) {
+        const y = Math.abs(a.y + a.h - b.y) < eps ? a.y + a.h : b.y + b.h;
+        const x0 = Math.max(a.x, b.x);
+        const x1 = Math.min(a.x + a.w, b.x + b.w);
+        if (x1 > x0) ctx.fillRect(x0, y - gap / 2, x1 - x0, gap);
+      }
+    }
   }
-  for (const x of seamX) ctx.fillRect(x - gap / 2, inner.y, gap, inner.h);
-  for (const y of seamY) ctx.fillRect(inner.x, y - gap / 2, inner.w, gap);
 
-  // Synthwave sun and palm silhouettes on the hero panel.
+  // Synthwave sun, on the hero panel's top corner — small enough to sit in
+  // the sky, clear of the face the face-aware crop anchors at the panel's
+  // centre. With a glow halo.
   const hero = photoRects[0];
   if (state.sun) {
-    const r = Math.min(hero.w, hero.h) * 0.16;
-    drawSun(ctx, hero.x + hero.w * 0.84, hero.y + hero.h * 0.14, r, grade.sun);
-  }
-  if (state.palms) {
-    const s = Math.min(hero.w, hero.h) / 560;
-    ctx.globalAlpha = 0.9;
-    drawPalm(ctx, hero.x + hero.w * 0.02, hero.y + hero.h * 0.99, s, false, '#170b26');
-    drawPalm(ctx, hero.x + hero.w * 0.98, hero.y + hero.h * 0.99, s * 0.8, true, '#170b26');
-    ctx.globalAlpha = 1;
+    const r = Math.min(hero.w, hero.h) * 0.15;
+    drawSun(ctx, hero.x + hero.w * 0.85, hero.y + hero.h * 0.12, r, grade.sun);
   }
 
   // Vignette: darkened corners pull the eye to the middle.
@@ -354,60 +633,18 @@ export function drawCover(canvas, state, photos) {
     ctx.restore();
   }
 
-  // Caption band: a dark scrim rising from the foot, title + subtitle on top.
-  const title = (state.title ?? '').trim().toUpperCase();
-  const subtitle = (state.subtitle ?? '').trim();
-  const bandH = h * 0.19;
-  const bandY = h - bandH - frame * 0.4;
-  const scrim = ctx.createLinearGradient(0, bandY - bandH * 0.5, 0, h);
-  scrim.addColorStop(0, 'rgba(16, 4, 28, 0)');
-  scrim.addColorStop(0.55, 'rgba(16, 4, 28, 0.62)');
-  scrim.addColorStop(1, 'rgba(16, 4, 28, 0.88)');
-  ctx.fillStyle = scrim;
-  ctx.fillRect(0, bandY - bandH * 0.5, w, h - bandY + bandH * 0.5);
-
-  if (title) {
-    const maxW = w * 0.88;
-    const size = fitTitle(ctx, title, maxW, h * 0.115);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.lineJoin = 'round';
-    const tx = w / 2;
-    const ty = bandY + bandH * 0.52;
-    if (state.titleStyle === 'sunset') {
-      const tg = ctx.createLinearGradient(0, ty - size, 0, ty);
-      tg.addColorStop(0, '#ffd319');
-      tg.addColorStop(0.55, '#ff7e00');
-      tg.addColorStop(1, '#ff2975');
-      ctx.fillStyle = tg;
-    } else if (state.titleStyle === 'neon') {
-      ctx.fillStyle = '#ff9de2';
-      ctx.shadowColor = '#ff2975';
-      ctx.shadowBlur = size * 0.35;
-    } else {
-      ctx.fillStyle = '#ffffff';
-    }
-    ctx.strokeStyle = 'rgba(16, 4, 28, 0.9)';
-    ctx.lineWidth = Math.max(2, size * 0.09);
-    ctx.strokeText(title, tx, ty);
-    ctx.fillText(title, tx, ty);
-    ctx.shadowBlur = 0;
-    // A thin neon rule under the title.
-    ctx.fillStyle = state.titleStyle === 'neon' ? '#00e5ff' : '#ffd319';
-    const ruleW = Math.min(maxW * 0.5, ctx.measureText(title).width * 0.6);
-    ctx.fillRect(tx - ruleW / 2, ty + size * 0.16, ruleW, Math.max(3, size * 0.045));
+  // Palm silhouettes at the foot of the cover, under the caption: they
+  // frame the title instead of floating mid-poster or covering it.
+  if (state.palms) {
+    const s = Math.min(w, h) / 650;
+    ctx.globalAlpha = 0.95;
+    drawPalm(ctx, w * 0.015, h * 0.995, s, false, '#12061f');
+    drawPalm(ctx, w * 0.985, h * 0.995, s * 0.82, true, '#12061f');
+    ctx.globalAlpha = 1;
   }
 
-  if (subtitle) {
-    const subSize = Math.max(16, h * 0.032);
-    ctx.font = `italic 700 ${subSize}px "ViceSerif", Georgia, serif`;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffe9f6';
-    ctx.shadowColor = '#ff2975';
-    ctx.shadowBlur = subSize * 0.5;
-    ctx.fillText(subtitle, w / 2, bandY + bandH * 0.92);
-    ctx.shadowBlur = 0;
-  }
+  // Caption band with the big extruded title, drawn over the palms.
+  drawCaption(ctx, state, w, h, frame);
 
   // Thin inner keyline around the whole cover, inside the frame.
   if (state.frame) {

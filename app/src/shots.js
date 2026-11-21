@@ -4,12 +4,17 @@
 //     drawing of the PNG it exports.
 //   ?shot=editor&photo=boulevard&caption=Boulevard%20Queen
 //     shows the editor with a sample photo loaded.
+// Extra scene knobs: preset, layout, grade, gradeAmount, titleStyle,
+// titlePos, titleScale, faceAware=0/1, and slots=a,b,c,d (one photo per panel).
 // window.__shotReady is set once the scene is painted.
-import { LAYOUTS, GRADES, SIZES } from './cover.js';
+import { LAYOUTS, GRADES, PRESETS, SIZES, TITLE_STYLES } from './cover.js';
 
 function applyParams(query) {
   const vice = window.__vice;
   const state = vice.state;
+  // A one-click look first, then the scene's own overrides on top of it.
+  const preset = query.get('preset');
+  if (preset && PRESETS[preset]) vice.applyPreset(preset);
   const layout = query.get('layout');
   if (layout && LAYOUTS[layout]) state.layout = layout;
   const grade = query.get('grade');
@@ -26,7 +31,16 @@ function applyParams(query) {
   const subtitle = query.get('subtitle');
   if (subtitle !== null) state.subtitle = subtitle;
   const style = query.get('titleStyle');
-  if (style && ['white', 'sunset', 'neon'].includes(style)) state.titleStyle = style;
+  if (style && TITLE_STYLES[style]) state.titleStyle = style;
+  const titlePos = query.get('titlePos');
+  if (titlePos === 'top' || titlePos === 'bottom') state.titlePos = titlePos;
+  const titleScale = query.get('titleScale');
+  if (titleScale !== null && Number.isFinite(Number(titleScale))) {
+    state.titleScale = Math.max(0.8, Math.min(1.3, Number(titleScale)));
+  }
+  const faceAware = query.get('faceAware');
+  if (faceAware === '0') state.faceAware = false;
+  if (faceAware === '1') state.faceAware = true;
   const photo = query.get('photo');
   if (photo) {
     const index = vice.photos.findIndex(
@@ -36,6 +50,16 @@ function applyParams(query) {
       // The named sample fills every panel unless the scene says otherwise.
       state.slots.forEach((slot) => { slot.photo = index; });
     }
+  }
+  // Per-panel photos: slots=boulevard,pier,boulevard,pier picks one per panel.
+  const slots = query.get('slots');
+  if (slots) {
+    slots.split(',').forEach((name, i) => {
+      const index = vice.photos.findIndex(
+        (p) => p.name === name || p.name.replace(/\.[^.]+$/, '') === name,
+      );
+      if (index >= 0 && state.slots[i]) state.slots[i].photo = index;
+    });
   }
 }
 

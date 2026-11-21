@@ -1,13 +1,15 @@
 // Vice City Cover Studio — the editor: photos, panels, caption, export.
 // Wires the controls in index.html to the cover renderer in cover.js.
 // Photos are read on this machine with FileReader / <img>: nothing uploads.
-import { LAYOUTS, GRADES, SIZES, defaultState, drawCover, panelRects } from './cover.js';
+// Round 4: one-click looks, title position and size, face-aware crops
+// (the focal point is measured when each photo loads), and export-all.
+import { LAYOUTS, GRADES, PRESETS, SIZES, TITLE_STYLES, defaultState, drawCover, detectFocalPoint, panelRects } from './cover.js';
 import { runShot } from './shots.js';
 
 const $ = (id) => document.getElementById(id);
 const preview = $('preview');
 const state = defaultState();
-/** Loaded photos: {img, name, url} in tray order. */
+/** Loaded photos: {img, name, url, focal} in tray order. */
 const photos = [];
 let pickedPhoto = 0;
 let dragging = null;
@@ -26,12 +28,23 @@ function loadImage(url) {
   });
 }
 
+/** Measures a photo's focal point (face) once it has loaded, then redraws. */
+function measureFocal(photo) {
+  try {
+    photo.focal = detectFocalPoint(photo.img);
+  } catch {
+    photo.focal = null;
+  }
+}
+
 async function loadSamples() {
   for (const sample of SAMPLES) {
     if (photos.some((p) => p.name === sample.name)) continue;
     try {
       const img = await loadImage(sample.url);
-      photos.push({ img, name: sample.name, url: sample.url });
+      const photo = { img, name: sample.name, url: sample.url, focal: null };
+      photos.push(photo);
+      measureFocal(photo);
     } catch (error) {
       setStatus(`Sample ${sample.name} did not load.`);
     }
@@ -51,7 +64,9 @@ function addFiles(files) {
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        photos.push({ img, name: file.name, url: reader.result });
+        const photo = { img, name: file.name, url: reader.result, focal: null };
+        photos.push(photo);
+        measureFocal(photo);
         pending -= 1;
         if (pending === 0) {
           renderTray();
@@ -123,12 +138,37 @@ function buildGradeButtons() {
   buildButtons('gradeBtns', GRADES, state.grade, (key) => { state.grade = key; });
 }
 
+/** Applies a one-click look: layout + grade + lettering + title position. */
+function applyPreset(key) {
+  const preset = PRESETS[key];
+  if (!preset) return;
+  state.layout = preset.layout;
+  state.grade = preset.grade;
+  state.titleStyle = preset.titleStyle;
+  state.titlePos = preset.titlePos;
+  state.selected = 0;
+  buildLayoutButtons();
+  buildGradeButtons();
+  buildTitleStyleButtons();
+  buildTitlePosButtons();
+  syncPanelControls();
+  redraw();
+  setStatus(`Look “${preset.label}” applied — tweak it or export.`);
+}
+
+function buildPresetButtons() {
+  buildButtons('presetBtns', PRESETS, null, applyPreset);
+}
+
 function buildTitleStyleButtons() {
-  buildButtons('titleStyleBtns', {
-    white: { label: 'White' },
-    sunset: { label: 'Sunset gradient' },
-    neon: { label: 'Neon pink' },
-  }, state.titleStyle, (key) => { state.titleStyle = key; });
+  buildButtons('titleStyleBtns', TITLE_STYLES, state.titleStyle, (key) => { state.titleStyle = key; });
+}
+
+function buildTitlePosButtons() {
+  buildButtons('titlePosBtns', {
+    bottom: { label: 'Bottom' },
+    top: { label: 'Top' },
+  }, state.titlePos, (key) => { state.titlePos = key; });
 }
 
 function buildSizeButtons() {
@@ -157,13 +197,17 @@ function syncPanelControls() {
 
 /** Rebuilds every control from the state (used by the screenshot scenes). */
 function syncUI() {
+  buildPresetButtons();
   buildLayoutButtons();
   buildGradeButtons();
   buildTitleStyleButtons();
+  buildTitlePosButtons();
   buildSizeButtons();
   $('titleInput').value = state.title;
   $('subtitleInput').value = state.subtitle;
   $('gradeAmount').value = String(state.gradeAmount);
+  $('titleScale').value = String(state.titleScale);
+  $('faceAwareToggle').checked = state.faceAware;
   $('frameToggle').checked = state.frame;
   $('grainToggle').checked = state.grain;
   $('vignetteToggle').checked = state.vignette;
@@ -218,8 +262,8 @@ function bindPreview() {
 }
 
 /** Renders the cover at full export size and downloads it as a PNG. */
-function exportPng() {
-  const size = SIZES[state.size];
+function exportPng(sizeKey) {
+  const size = SIZES[sizeKey ?? state.size];
   const canvas = document.createElement('canvas');
   canvas.width = size.w;
   canvas.height = size.h;
@@ -232,14 +276,25 @@ function exportPng() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `vice-city-cover-${state.size}.png`;
+    link.download = `vice-city-cover-${size.w}x${size.h}.png`;
     document.body.append(link);
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     window.__lastExport = { w: size.w, h: size.h, bytes: blob.size };
+    (window.__lastExports ?? (window.__lastExports = [])).push(window.__lastExport);
     setStatus(`Exported ${size.w} × ${size.h} PNG (${Math.round(blob.size / 1024)} KB).`);
   }, 'image/png');
+}
+
+/** Downloads the cover in all three post sizes, one after another. */
+function exportAllSizes() {
+  window.__lastExports = [];
+  const keys = Object.keys(SIZES);
+  keys.forEach((key, i) => {
+    setTimeout(() => exportPng(key), i * 450);
+  });
+  setStatus(`Exporting all 3 sizes — square, portrait and wide…`);
 }
 
 function bindControls() {
@@ -256,8 +311,16 @@ function bindControls() {
     state.subtitle = event.target.value;
     redraw();
   });
+  $('titleScale').addEventListener('input', (event) => {
+    state.titleScale = Number(event.target.value);
+    redraw();
+  });
   $('gradeAmount').addEventListener('input', (event) => {
     state.gradeAmount = Number(event.target.value);
+    redraw();
+  });
+  $('faceAwareToggle').addEventListener('change', (event) => {
+    state.faceAware = event.target.checked;
     redraw();
   });
   $('zoomInput').addEventListener('input', (event) => {
@@ -283,13 +346,16 @@ function bindControls() {
   $('vignetteToggle').addEventListener('change', (event) => { state.vignette = event.target.checked; redraw(); });
   $('sunToggle').addEventListener('change', (event) => { state.sun = event.target.checked; redraw(); });
   $('palmsToggle').addEventListener('change', (event) => { state.palms = event.target.checked; redraw(); });
-  $('export').addEventListener('click', exportPng);
+  $('export').addEventListener('click', () => exportPng());
+  $('exportAll').addEventListener('click', exportAllSizes);
 }
 
 function initEditor() {
+  buildPresetButtons();
   buildLayoutButtons();
   buildGradeButtons();
   buildTitleStyleButtons();
+  buildTitlePosButtons();
   buildSizeButtons();
   bindControls();
   bindPreview();
@@ -305,7 +371,7 @@ function initEditor() {
 }
 
 // The screenshot scenes drive the same editor through this handle.
-window.__vice = { state, photos, redraw, loadSamples, sizePreviewCanvas, setStatus, syncUI };
+window.__vice = { state, photos, redraw, loadSamples, sizePreviewCanvas, setStatus, syncUI, applyPreset, exportPng, exportAllSizes };
 
 const shot = new URLSearchParams(location.search).get('shot');
 if (shot) {
